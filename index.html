@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Silver Stack">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-512.png">
+<title>Silver Acquisition Log & Goal Tracker</title>
+<style>
+:root{
+  --bg:#F7F8FA; --card:#FFFFFF; --ink:#1A1D21; --head:#3A3F45; --muted:#5F6670; --line:#E3E6EA;
+  --blue:#3366E8; --blue-t:#EAF0FD; --green:#007A68; --green-t:#E3F3EF; --amber:#C77A12; --amber-t:#FCF1E1;
+  --purple:#7A4FC4; --slate:#6E7F96; --track:#ECEEF1; --danger:#C0392B;
+  --font:Roboto,"SF Pro Text",-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#121417; --card:#1C1F24; --ink:#ECEEF1; --head:#D5D9DE; --muted:#A0A7B0; --line:#2D3238;
+    --blue:#6B91F2; --blue-t:#1D2742; --green:#2FB39B; --green-t:#16302B; --amber:#E9A346; --amber-t:#33281A;
+    --purple:#A585E6; --slate:#8C9BB0; --track:#2A2F36; --danger:#E57366; color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:17px;line-height:1.45}
+main{max-width:760px;margin:0 auto;padding:24px 20px 60px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+h1{font-size:2rem;line-height:1.2;font-weight:700;color:var(--head);margin:0 0 14px;letter-spacing:-.01em}
+.asof{font-size:1.3rem;font-weight:700;margin:0 0 22px}
+.goalbtn{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-weight:600;font-size:.9rem;color:var(--blue);flex:none;margin-top:6px}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:26px}
+.stat{border-radius:16px;padding:14px 14px 18px;border:1.5px solid}
+.stat span{display:block;font-size:.95rem;color:var(--muted);min-height:2.6em}
+.stat b{display:block;white-space:nowrap;font-size:clamp(1.35rem,6.4vw,2.2rem);font-weight:700;line-height:1.1;margin-top:6px}
+.stat.s1{background:var(--blue-t);border-color:color-mix(in srgb,var(--blue) 30%,transparent)}
+.stat.s1 b{color:var(--blue)}
+.stat.s2{background:var(--green-t);border-color:color-mix(in srgb,var(--green) 30%,transparent)}
+.stat.s2 b{color:var(--green)}
+.stat.s3{background:var(--amber-t);border-color:color-mix(in srgb,var(--amber) 30%,transparent)}
+.stat.s3 b{color:var(--amber)}
+
+h2{font-size:1.45rem;font-weight:700;margin:0;line-height:1.25}
+.sub{color:var(--muted);font-size:1.05rem;margin:2px 0 0}
+section{margin-bottom:32px}
+
+.prog-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:12px}
+.prog-head small{color:var(--muted);font-size:.95rem;white-space:nowrap}
+.bar{height:22px;background:var(--track);border-radius:999px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--blue),var(--green));min-width:22px;transition:width .6s ease}
+.ticks{position:relative;height:22px;margin-top:6px;font-size:.78rem;color:var(--muted)}
+.ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.ticks span.done{color:var(--green);font-weight:700}
+.ticks span:last-child{transform:translateX(-100%)}
+
+.donutwrap{display:flex;flex-direction:column;align-items:center;gap:18px;margin-top:18px}
+.donut{width:min(320px,80vw);height:auto}
+.legend{list-style:none;margin:0;padding:0;width:100%}
+.legend li{display:flex;align-items:center;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.legend i{width:16px;height:16px;border-radius:5px;flex:none}
+.legend span{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
+
+table{width:100%;border-collapse:collapse;margin-top:16px}
+th,td{text-align:left;padding:14px 0;border-bottom:1px solid var(--line);font-size:1.05rem}
+th{font-weight:700;border-bottom-width:2px}
+th:first-child,td:first-child{width:40%}
+.ok{color:var(--green);display:inline-flex;align-items:center;gap:8px}
+.ok svg{width:22px;height:22px}
+.rem{display:flex;flex-direction:column;gap:5px}
+.minibar{height:6px;background:var(--track);border-radius:999px;overflow:hidden;max-width:180px}
+.minibar i{display:block;height:100%;background:var(--blue);border-radius:999px}
+.next{font-size:1.2rem;line-height:1.6;margin:20px 0 0}
+
+.value{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;align-items:end}
+.value label{display:flex;flex-direction:column;font-size:.9rem;color:var(--muted);gap:4px}
+.value .out{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:1.25rem;font-weight:700}
+.value .out small{display:block;font-size:.82rem;font-weight:400;color:var(--muted)}
+#melt{color:var(--green)} #cost{color:var(--purple)}
+
+.ledgerhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.primary{white-space:nowrap;flex:none;background:var(--blue);color:#fff;border:0;border-radius:999px;padding:10px 18px;font-weight:600}
+.entry{display:grid;grid-template-columns:4px 1fr auto;gap:2px 12px;padding:12px 4px 12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.entry .stripe{grid-row:1/3;border-radius:4px}
+.entry .t{font-weight:600}
+.entry .oz{font-weight:700;font-size:1.2rem;text-align:right}
+.entry .m{grid-column:2/4;color:var(--muted);font-size:.88rem}
+.empty{color:var(--muted);padding:18px 0}
+
+.tools{display:flex;gap:10px;flex-wrap:wrap}
+.tools button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:9px 16px;font-weight:500}
+.tools button:first-child{color:var(--blue);border-color:color-mix(in srgb,var(--blue) 40%,transparent)}
+
+input,select,textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+dialog{border:0;border-radius:18px;padding:0;background:var(--card);color:var(--ink);width:min(520px,94vw);max-height:90vh}
+dialog::backdrop{background:rgba(10,14,20,.5)}
+dialog form{padding:20px}
+dialog h2{margin-bottom:14px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fields label{display:flex;flex-direction:column;gap:4px;font-size:.88rem;color:var(--muted)}
+.fields .full{grid-column:1/-1}
+.calc{grid-column:1/-1;font-size:.95rem;color:var(--green);font-weight:600}
+.actions{display:flex;gap:10px;margin-top:18px;justify-content:flex-end}
+.actions .del{margin-right:auto;background:none;border:0;color:var(--danger);font-weight:600}
+.actions .cancel{background:none;border:1px solid var(--line);border-radius:999px;padding:10px 16px}
+
+@media (max-width:520px){
+  h1{font-size:1.75rem}
+  .stats{gap:8px}
+  .stat{padding:12px 10px 14px}
+  .stat span{font-size:.85rem}
+  .value{grid-template-columns:1fr 1fr}
+  .value label{grid-column:1/-1}
+}
+@media (prefers-reduced-motion: reduce){.bar i{transition:none}}
+@media print{
+  .goalbtn,.tools,.ledgerhead button,.value label{display:none}
+  body{background:#fff}
+  .entry{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <h1>Silver Acquisition Log &amp; Goal Tracker</h1>
+    <button class="goalbtn" id="goalBtn">Edit goal</button>
+  </div>
+  <p class="asof" id="asof"></p>
+
+  <div class="stats">
+    <div class="stat s1"><span>Total silver</span><b id="total">0 oz</b></div>
+    <div class="stat s2"><span>Goal completed</span><b id="pct">0%</b></div>
+    <div class="stat s3"><span>Remaining</span><b id="remaining">0 oz</b></div>
+  </div>
+
+  <section>
+    <div class="prog-head">
+      <h2 id="progTitle">Progress toward 200 oz</h2>
+      <small id="progFrac">0 / 200 oz</small>
+    </div>
+    <div class="bar" role="progressbar" aria-valuemin="0" id="bar"><i id="barFill" style="width:0"></i></div>
+    <div class="ticks" id="ticks"></div>
+  </section>
+
+  <section>
+    <h2>Silver holdings by form</h2>
+    <p class="sub" id="holdSub">0 troy ounces total</p>
+    <div class="donutwrap">
+      <svg class="donut" viewBox="0 0 42 42" id="donut" role="img" aria-label="Holdings by form"></svg>
+      <ul class="legend" id="legend"></ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Silver Goal Milestones</h2>
+    <table><thead><tr><th>Milestone</th><th>Status</th></tr></thead><tbody id="msBody"></tbody></table>
+    <p class="next" id="nextText"></p>
+  </section>
+
+  <section>
+    <h2>Value</h2>
+    <div class="value">
+      <label>Silver spot price ($/oz)<input type="number" step="0.01" min="0" id="spot" inputmode="decimal" placeholder="Enter today's spot"></label>
+      <div class="out" id="melt">—<small>Melt value</small></div>
+      <div class="out" id="cost">—<small>Total paid</small></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="ledgerhead">
+      <h2>Complete Purchase Ledger</h2>
+      <button class="primary" id="addBtn">Add purchase</button>
+    </div>
+    <div id="ledger"></div>
+  </section>
+
+  <section>
+    <div class="tools">
+      <button id="printBtn">Download ledger (PDF)</button>
+      <button id="exportBtn">Back up data</button>
+      <button id="importBtn">Restore backup</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+  </section>
+</main>
+
+<dialog id="entryDlg">
+  <form method="dialog" id="entryForm">
+    <h2 id="dlgTitle">Add purchase</h2>
+    <div class="fields">
+      <label>Date<input type="date" name="date" required></label>
+      <label>Form
+        <select name="form">
+          <option>Coin</option><option>Round</option><option>Bar</option>
+          <option>Junk silver</option><option>Other</option>
+        </select>
+      </label>
+      <label class="full">Item / design<input name="item" placeholder="e.g. American Silver Eagle 2026" required></label>
+      <label>Quantity<input type="number" name="qty" min="0" step="1" value="1" inputmode="numeric" required></label>
+      <label>Troy oz each<input type="number" name="ozEach" min="0" step="0.0001" value="1" inputmode="decimal" required></label>
+      <label>Total paid ($)<input type="number" name="price" min="0" step="0.01" inputmode="decimal"></label>
+      <label>Dealer<input name="dealer"></label>
+      <label class="full">Notes<textarea name="notes" rows="2"></textarea></label>
+      <div class="calc" id="calc"></div>
+    </div>
+    <div class="actions">
+      <button type="button" class="del" id="delBtn" hidden>Delete</button>
+      <button type="button" class="cancel" id="cancelBtn">Cancel</button>
+      <button type="submit" class="primary">Save purchase</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="goalDlg">
+  <form method="dialog" id="goalForm">
+    <h2>Accumulation goal</h2>
+    <div class="fields">
+      <label class="full">Goal (troy oz)<input type="number" name="goal" min="1" step="1" required></label>
+    </div>
+    <div class="actions">
+      <button type="button" class="cancel" id="goalCancel">Cancel</button>
+      <button type="submit" class="primary">Save goal</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const KEY='silverStack.v1';
+const FORM_COLORS={'Coin':'var(--blue)','Round':'var(--green)','Bar':'var(--slate)','Junk silver':'var(--amber)','Other':'var(--purple)','Mixed':'var(--blue)'};
+const CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>';
+
+function load(){
+  try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.entries)){
+    if(s.entries.length===1&&s.entries[0].form==='Mixed'&&String(s.entries[0].item).startsWith('Opening balance')){s.entries=seedEntries();}
+    return s;}}catch(e){}
+  return {goal:200,spot:null,entries:seedEntries()};
+}
+function seedEntries(){return JSON.parse(JSON.stringify(SEED));}
+const SEED=[{"id":"s01","date":"2026-02-13","item":"Sunshine Owl","form":"Bar","qty":1,"ozEach":1,"price":79.8,"dealer":"Sun City Coin","notes":"Spot $77.80/oz, premium $2.00/oz. Total calculated from price"},{"id":"s02","date":"2026-06-16","item":"Bar (design not recorded)","form":"Bar","qty":1,"ozEach":1,"price":73.77,"dealer":"Sun City Coin","notes":"Spot $66.00/oz, premium $2.00/oz, tax $5.77"},{"id":"s03","date":"2026-06-25","item":"SilverTowne","form":"Bar","qty":1,"ozEach":1,"price":67.25,"dealer":"Sun City Coin","notes":"Spot $60.00/oz, premium $2.00/oz, tax $5.25. Total calculated from price plus tax"},{"id":"s04","date":"2026-07-13","item":"Sunshine Minting","form":"Bar","qty":1,"ozEach":1,"price":60.55,"dealer":"Sun City Coin","notes":"Spot $58.55/oz, premium $2.00/oz. Total calculated from price"},{"id":"s05","date":"2026-07-25","item":"Indian Head Liberty","form":"Round","qty":1,"ozEach":1,"price":68.15,"dealer":"Sun City Coin","notes":"Spot $55.90/oz, premium $2.00/oz, tax $10.25. Total calculated from price plus tax"},{"id":"s06","date":"2026-08-01","item":"Indian Head Liberty","form":"Round","qty":1,"ozEach":1,"price":67.25,"dealer":"Sun City Coin","notes":"Spot $60.00/oz, premium $2.00/oz, tax $5.25. Total calculated from price plus tax"},{"id":"s07","date":"2026-08-03","item":"Dealer's Choice","form":"Round","qty":5,"ozEach":1,"price":313.86,"dealer":"Hero Bullion","notes":"Spot $58.26/oz, $291.28 subtotal for 5 oz, tax $22.58"},{"id":"s08","date":"2026-08-08","item":"Liberty","form":"Round","qty":1,"ozEach":1,"price":71.39,"dealer":"Sun City Coin","notes":"Spot $63.65/oz, premium $2.00/oz, tax $5.74"},{"id":"s09","date":"2026-08-12","item":"Indian Head Buffalo","form":"Round","qty":1,"ozEach":1,"price":70.0,"dealer":"Hough","notes":"Spot $65.50/oz, premium $4.50/oz, tax $0.00"},{"id":"s10","date":"2026-08-14","item":"Indian Head","form":"Round","qty":1,"ozEach":1,"price":50.0,"dealer":"Hough","notes":"Spot $64.68/oz, premium $-14.68/oz"},{"id":"s11","date":"2026-08-29","item":"Indian Head","form":"Round","qty":2,"ozEach":1,"price":142.0,"dealer":"Hough","notes":"Spot $67.05/oz, premium $3.95/oz"},{"id":"s12","date":"2026-09-01","item":"Indian Head","form":"Round","qty":2,"ozEach":1,"price":130.0,"dealer":"Hough","notes":"Spot $63.92/oz, premium $1.08/oz"},{"id":"s13","date":"2026-09-18","item":"Route 66","form":"Round","qty":1,"ozEach":1,"price":71.0,"dealer":"Hough","notes":"Spot $66.38/oz, premium $4.62/oz"},{"id":"s14","date":"2026-09-28","item":"Indian Head","form":"Round","qty":3,"ozEach":1,"price":195.0,"dealer":"Hough","notes":"Spot $61.40/oz, premium $3.60/oz"},{"id":"s15","date":"2026-10-02","item":"Indian Buffalo","form":"Round","qty":3,"ozEach":1,"price":195.0,"dealer":"Hough","notes":"Spot $61.30/oz, premium $3.70/oz"},{"id":"s16","date":"2026-10-06","item":"Buffalo Indian","form":"Round","qty":2,"ozEach":1,"price":130.0,"dealer":"Hough","notes":"Spot $61.30/oz, premium $3.70/oz"},{"id":"s17","date":"2026-10-14","item":"Miner Eleland","form":"Round","qty":1,"ozEach":1,"price":60.0,"dealer":"Hough","notes":"Spot $55.70/oz, premium $4.30/oz"}];
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){alert('Could not save on this device. Use "Back up data" to keep a copy.');}}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+const oz=e=>(+e.qty||0)*(+e.ozEach||0);
+const fmt=n=>(Math.round(n*100)/100).toLocaleString(undefined,{maximumFractionDigits:2});
+const money=n=>n.toLocaleString(undefined,{style:'currency',currency:'USD'});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+
+function milestones(goal){
+  const base=[25,50,100,150,200,250,300,400,500,750,1000,1500,2000,5000];
+  const list=base.filter(m=>m<goal);list.push(goal);return list;
+}
+
+function render(){
+  const total=state.entries.reduce((a,e)=>a+oz(e),0);
+  const goal=state.goal;
+  const pct=Math.min(100,total/goal*100);
+  const ms=milestones(goal);
+  const next=ms.find(m=>m>total);
+
+  $('asof').textContent='As of '+new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  $('total').textContent=fmt(total)+' oz';
+  $('pct').textContent=Math.floor(pct)+'%';
+  $('remaining').textContent=fmt(Math.max(0,goal-total))+' oz';
+
+  $('progTitle').textContent=`Progress toward ${fmt(goal)} oz`;
+  $('progFrac').textContent=`${fmt(total)} / ${fmt(goal)} oz`;
+  $('bar').setAttribute('aria-valuemax',goal);$('bar').setAttribute('aria-valuenow',total);
+  requestAnimationFrame(()=>{$('barFill').style.width=pct+'%';});
+  $('ticks').innerHTML=ms.map(m=>`<span class="${total>=m?'done':''}" style="left:${m/goal*100}%">${fmt(m)}</span>`).join('');
+
+  // donut
+  const byForm={};state.entries.forEach(e=>{byForm[e.form]=(byForm[e.form]||0)+oz(e);});
+  const forms=Object.entries(byForm).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  $('holdSub').textContent=`${fmt(total)} troy ounces total`;
+  let off=25,svg='<circle cx="21" cy="21" r="15.915" fill="none" stroke="var(--track)" stroke-width="8"/>';
+  const gap=forms.length>1?0.6:0;
+  forms.forEach(([f,v])=>{const p=total?v/total*100:0;
+    svg+=`<circle cx="21" cy="21" r="15.915" fill="none" stroke="${FORM_COLORS[f]||'var(--slate)'}" stroke-width="8" stroke-dasharray="${Math.max(0,p-gap)} ${100-p+gap}" stroke-dashoffset="${off}"/>`;off-=p;});
+  svg+=`<text x="21" y="22" text-anchor="middle" font-size="6" font-weight="700" fill="var(--ink)">${fmt(total)}</text><text x="21" y="26.8" text-anchor="middle" font-size="3" fill="var(--muted)">troy oz</text>`;
+  $('donut').innerHTML=svg;
+  $('legend').innerHTML=forms.length?forms.map(([f,v])=>`<li><i style="background:${FORM_COLORS[f]||'var(--slate)'}"></i>${esc(f)}<span>${fmt(v)} oz (${Math.round(v/total*100)}%)</span></li>`).join(''):'<li>No holdings yet</li>';
+
+  // milestones
+  $('msBody').innerHTML=ms.map(m=>`<tr><td>${fmt(m)} oz</td><td>${total>=m
+    ?`<span class="ok">${CHECK}Achieved</span>`
+    :`<div class="rem">${fmt(m-total)} oz remaining<div class="minibar"><i style="width:${Math.min(100,total/m*100)}%"></i></div></div>`}</td></tr>`).join('');
+  $('nextText').innerHTML=next
+    ?`Your next milestone is <b>${fmt(next)} ounces</b>, and you have already accumulated ${Math.floor(total/next*100)}% of that amount.`
+    :`You have reached your goal of <b>${fmt(goal)} ounces</b>.`;
+
+  // value
+  const spotEl=$('spot');
+  if(document.activeElement!==spotEl)spotEl.value=state.spot??'';
+  const paid=state.entries.reduce((a,e)=>a+(+e.price||0),0);
+  $('melt').innerHTML=(state.spot?money(total*state.spot):'—')+'<small>Melt value</small>';
+  $('cost').innerHTML=(paid?money(paid):'—')+'<small>Total paid</small>';
+
+  // ledger
+  const sorted=[...state.entries].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  $('ledger').innerHTML=sorted.length?sorted.map(e=>{
+    const d=e.date?new Date(e.date+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
+    const meta=[d,e.form,`${e.qty} × ${fmt(+e.ozEach)} oz`,e.price?money(+e.price):'',e.dealer].filter(Boolean).join(', ');
+    return `<div class="entry" tabindex="0" data-id="${e.id}"><div class="stripe" style="background:${FORM_COLORS[e.form]||'var(--slate)'}"></div><div class="t">${esc(e.item)}</div><div class="oz">${fmt(oz(e))} oz</div><div class="m">${esc(meta)}${e.notes?'<br>'+esc(e.notes):''}</div></div>`;
+  }).join(''):'<p class="empty">No purchases yet. Add your first one to start the stack.</p>';
+}
+
+// purchase dialog
+const dlg=$('entryDlg'),form=$('entryForm');
+let editing=null;
+function openEntry(e){
+  editing=e?e.id:null;
+  $('dlgTitle').textContent=e?'Edit purchase':'Add purchase';
+  $('delBtn').hidden=!e;
+  const d=e||{date:new Date().toISOString().slice(0,10),form:'Coin',item:'',qty:1,ozEach:1,price:'',dealer:'',notes:''};
+  for(const k of ['date','form','item','qty','ozEach','price','dealer','notes']){
+    if(k==='form'&&![...form.form.options].some(o=>o.value===d.form))form.form.add(new Option(d.form));
+    form[k].value=d[k]??'';
+  }
+  calc();dlg.showModal();
+}
+function calc(){const t=(+form.qty.value||0)*(+form.ozEach.value||0);$('calc').textContent=`Adds ${fmt(t)} troy oz`;}
+form.addEventListener('input',calc);
+form.addEventListener('submit',()=>{
+  const e={id:editing||uid(),date:form.date.value,form:form.form.value,item:form.item.value.trim(),qty:+form.qty.value,ozEach:+form.ozEach.value,price:form.price.value===''?null:+form.price.value,dealer:form.dealer.value.trim(),notes:form.notes.value.trim()};
+  if(editing)state.entries=state.entries.map(x=>x.id===editing?e:x);else state.entries.push(e);
+  save();render();
+});
+$('cancelBtn').onclick=()=>dlg.close();
+$('delBtn').onclick=()=>{if(confirm('Delete this purchase?')){state.entries=state.entries.filter(x=>x.id!==editing);save();render();dlg.close();}};
+$('addBtn').onclick=()=>openEntry(null);
+const pick=ev=>{const el=ev.target.closest('.entry');if(el)openEntry(state.entries.find(x=>x.id===el.dataset.id));};
+$('ledger').addEventListener('click',pick);
+$('ledger').addEventListener('keydown',ev=>{if(ev.key==='Enter')pick(ev);});
+
+// goal dialog
+const gdlg=$('goalDlg'),gform=$('goalForm');
+$('goalBtn').onclick=()=>{gform.goal.value=state.goal;gdlg.showModal();};
+$('goalCancel').onclick=()=>gdlg.close();
+gform.addEventListener('submit',()=>{const g=+gform.goal.value;if(g>0){state.goal=g;save();render();}});
+
+$('spot').addEventListener('input',e=>{state.spot=e.target.value===''?null:+e.target.value;save();render();});
+
+$('printBtn').onclick=()=>window.print();
+$('exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`silver-backup-${new Date().toISOString().slice(0,10)}.json`;a.click();
+};
+$('importBtn').onclick=()=>$('importFile').click();
+$('importFile').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  f.text().then(t=>{const s=JSON.parse(t);if(!Array.isArray(s.entries))throw 0;if(confirm('Replace current data with this backup?')){state=s;save();render();}}).catch(()=>alert('That file is not a silver tracker backup.'));
+  e.target.value='';
+};
+
+let state=load();save();
+render();
+</script>
+</body>
+</html>
