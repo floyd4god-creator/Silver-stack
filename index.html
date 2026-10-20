@@ -86,6 +86,12 @@ th:first-child,td:first-child{width:40%}
 .value .out small{display:block;font-size:.82rem;font-weight:400;color:var(--muted)}
 #melt{color:var(--green)} #cost{color:var(--purple)}
 
+.spotcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.spothead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.spothead small{color:var(--muted);font-size:.85rem}
+.spotcard .out{background:var(--bg)}
+.gain{margin:12px 0 0;font-size:.95rem;color:var(--muted)}
+.gain b.up{color:var(--green)} .gain b.down{color:var(--danger)}
 .ledgerhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
 .primary{white-space:nowrap;flex:none;background:var(--blue);color:#fff;border:0;border-radius:999px;padding:10px 18px;font-weight:600}
 .entry{display:grid;grid-template-columns:4px 1fr auto;gap:2px 12px;padding:12px 4px 12px 0;border-bottom:1px solid var(--line);cursor:pointer}
@@ -142,6 +148,16 @@ dialog h2{margin-bottom:14px}
     <div class="stat s3"><span>Remaining</span><b id="remaining">0 oz</b></div>
   </div>
 
+  <section class="spotcard">
+    <div class="spothead"><h2>Today's spot price</h2><small id="spotDate"></small></div>
+    <div class="value">
+      <label>Silver spot ($/oz)<input type="number" step="0.01" min="0" id="spot" inputmode="decimal" placeholder="Enter spot"></label>
+      <div class="out" id="melt">—<small>Melt value</small></div>
+      <div class="out" id="cost">—<small>Total paid</small></div>
+    </div>
+    <p class="gain" id="gain"></p>
+  </section>
+
   <section>
     <div class="prog-head">
       <h2 id="progTitle">Progress toward 200 oz</h2>
@@ -166,14 +182,6 @@ dialog h2{margin-bottom:14px}
     <p class="next" id="nextText"></p>
   </section>
 
-  <section>
-    <h2>Value</h2>
-    <div class="value">
-      <label>Silver spot price ($/oz)<input type="number" step="0.01" min="0" id="spot" inputmode="decimal" placeholder="Enter today's spot"></label>
-      <div class="out" id="melt">—<small>Melt value</small></div>
-      <div class="out" id="cost">—<small>Total paid</small></div>
-    </div>
-  </section>
 
   <section>
     <div class="ledgerhead">
@@ -208,6 +216,7 @@ dialog h2{margin-bottom:14px}
       <label>Quantity<input type="number" name="qty" min="0" step="1" value="1" inputmode="numeric" required></label>
       <label>Troy oz each<input type="number" name="ozEach" min="0" step="0.0001" value="1" inputmode="decimal" required></label>
       <label>Total paid ($)<input type="number" name="price" min="0" step="0.01" inputmode="decimal"></label>
+      <label>Spot at purchase ($/oz)<input type="number" name="spot" min="0" step="0.01" inputmode="decimal"></label>
       <label>Dealer<input name="dealer"></label>
       <label class="full">Notes<textarea name="notes" rows="2"></textarea></label>
       <div class="calc" id="calc"></div>
@@ -241,11 +250,12 @@ const CHECK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 function load(){
   try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&Array.isArray(s.entries)){
     if(s.entries.length===1&&s.entries[0].form==='Mixed'&&String(s.entries[0].item).startsWith('Opening balance')){s.entries=seedEntries();}
+    s.entries.forEach(x=>{if(x.spot==null){const mm=/^Spot \$([\d.]+)\/oz,?\s*/.exec(x.notes||'');if(mm){x.spot=+mm[1];x.notes=x.notes.slice(mm[0].length);x.notes=x.notes.charAt(0).toUpperCase()+x.notes.slice(1);}}});
     return s;}}catch(e){}
   return {goal:200,spot:null,entries:seedEntries()};
 }
 function seedEntries(){return JSON.parse(JSON.stringify(SEED));}
-const SEED=[{"id":"s01","date":"2026-02-13","item":"Sunshine Owl","form":"Bar","qty":1,"ozEach":1,"price":79.8,"dealer":"Sun City Coin","notes":"Spot $77.80/oz, premium $2.00/oz. Total calculated from price"},{"id":"s02","date":"2026-06-16","item":"Bar (design not recorded)","form":"Bar","qty":1,"ozEach":1,"price":73.77,"dealer":"Sun City Coin","notes":"Spot $66.00/oz, premium $2.00/oz, tax $5.77"},{"id":"s03","date":"2026-06-25","item":"SilverTowne","form":"Bar","qty":1,"ozEach":1,"price":67.25,"dealer":"Sun City Coin","notes":"Spot $60.00/oz, premium $2.00/oz, tax $5.25. Total calculated from price plus tax"},{"id":"s04","date":"2026-07-13","item":"Sunshine Minting","form":"Bar","qty":1,"ozEach":1,"price":60.55,"dealer":"Sun City Coin","notes":"Spot $58.55/oz, premium $2.00/oz. Total calculated from price"},{"id":"s05","date":"2026-07-25","item":"Indian Head Liberty","form":"Round","qty":1,"ozEach":1,"price":68.15,"dealer":"Sun City Coin","notes":"Spot $55.90/oz, premium $2.00/oz, tax $10.25. Total calculated from price plus tax"},{"id":"s06","date":"2026-08-01","item":"Indian Head Liberty","form":"Round","qty":1,"ozEach":1,"price":67.25,"dealer":"Sun City Coin","notes":"Spot $60.00/oz, premium $2.00/oz, tax $5.25. Total calculated from price plus tax"},{"id":"s07","date":"2026-08-03","item":"Dealer's Choice","form":"Round","qty":5,"ozEach":1,"price":313.86,"dealer":"Hero Bullion","notes":"Spot $58.26/oz, $291.28 subtotal for 5 oz, tax $22.58"},{"id":"s08","date":"2026-08-08","item":"Liberty","form":"Round","qty":1,"ozEach":1,"price":71.39,"dealer":"Sun City Coin","notes":"Spot $63.65/oz, premium $2.00/oz, tax $5.74"},{"id":"s09","date":"2026-08-12","item":"Indian Head Buffalo","form":"Round","qty":1,"ozEach":1,"price":70.0,"dealer":"Hough","notes":"Spot $65.50/oz, premium $4.50/oz, tax $0.00"},{"id":"s10","date":"2026-08-14","item":"Indian Head","form":"Round","qty":1,"ozEach":1,"price":50.0,"dealer":"Hough","notes":"Spot $64.68/oz, premium $-14.68/oz"},{"id":"s11","date":"2026-08-29","item":"Indian Head","form":"Round","qty":2,"ozEach":1,"price":142.0,"dealer":"Hough","notes":"Spot $67.05/oz, premium $3.95/oz"},{"id":"s12","date":"2026-09-01","item":"Indian Head","form":"Round","qty":2,"ozEach":1,"price":130.0,"dealer":"Hough","notes":"Spot $63.92/oz, premium $1.08/oz"},{"id":"s13","date":"2026-09-18","item":"Route 66","form":"Round","qty":1,"ozEach":1,"price":71.0,"dealer":"Hough","notes":"Spot $66.38/oz, premium $4.62/oz"},{"id":"s14","date":"2026-09-28","item":"Indian Head","form":"Round","qty":3,"ozEach":1,"price":195.0,"dealer":"Hough","notes":"Spot $61.40/oz, premium $3.60/oz"},{"id":"s15","date":"2026-10-02","item":"Indian Buffalo","form":"Round","qty":3,"ozEach":1,"price":195.0,"dealer":"Hough","notes":"Spot $61.30/oz, premium $3.70/oz"},{"id":"s16","date":"2026-10-06","item":"Buffalo Indian","form":"Round","qty":2,"ozEach":1,"price":130.0,"dealer":"Hough","notes":"Spot $61.30/oz, premium $3.70/oz"},{"id":"s17","date":"2026-10-14","item":"Miner Eleland","form":"Round","qty":1,"ozEach":1,"price":60.0,"dealer":"Hough","notes":"Spot $55.70/oz, premium $4.30/oz"}];
+const SEED=[{"id":"s01","date":"2026-02-13","item":"Sunshine Owl","form":"Bar","qty":1,"ozEach":1,"price":79.8,"dealer":"Sun City Coin","notes":"Premium $2.00/oz. Total calculated from price","spot":77.8},{"id":"s02","date":"2026-06-16","item":"Bar (design not recorded)","form":"Bar","qty":1,"ozEach":1,"price":73.77,"dealer":"Sun City Coin","notes":"Premium $2.00/oz, tax $5.77","spot":66.0},{"id":"s03","date":"2026-06-25","item":"SilverTowne","form":"Bar","qty":1,"ozEach":1,"price":67.25,"dealer":"Sun City Coin","notes":"Premium $2.00/oz, tax $5.25. Total calculated from price plus tax","spot":60.0},{"id":"s04","date":"2026-07-13","item":"Sunshine Minting","form":"Bar","qty":1,"ozEach":1,"price":60.55,"dealer":"Sun City Coin","notes":"Premium $2.00/oz. Total calculated from price","spot":58.55},{"id":"s05","date":"2026-07-25","item":"Indian Head Liberty","form":"Round","qty":1,"ozEach":1,"price":68.15,"dealer":"Sun City Coin","notes":"Premium $2.00/oz, tax $10.25. Total calculated from price plus tax","spot":55.9},{"id":"s06","date":"2026-08-01","item":"Indian Head Liberty","form":"Round","qty":1,"ozEach":1,"price":67.25,"dealer":"Sun City Coin","notes":"Premium $2.00/oz, tax $5.25. Total calculated from price plus tax","spot":60.0},{"id":"s07","date":"2026-08-03","item":"Dealer's Choice","form":"Round","qty":5,"ozEach":1,"price":313.86,"dealer":"Hero Bullion","notes":"$291.28 subtotal for 5 oz, tax $22.58","spot":58.26},{"id":"s08","date":"2026-08-08","item":"Liberty","form":"Round","qty":1,"ozEach":1,"price":71.39,"dealer":"Sun City Coin","notes":"Premium $2.00/oz, tax $5.74","spot":63.65},{"id":"s09","date":"2026-08-12","item":"Indian Head Buffalo","form":"Round","qty":1,"ozEach":1,"price":70.0,"dealer":"Hough","notes":"Premium $4.50/oz, tax $0.00","spot":65.5},{"id":"s10","date":"2026-08-14","item":"Indian Head","form":"Round","qty":1,"ozEach":1,"price":50.0,"dealer":"Hough","notes":"Premium $-14.68/oz","spot":64.68},{"id":"s11","date":"2026-08-29","item":"Indian Head","form":"Round","qty":2,"ozEach":1,"price":142.0,"dealer":"Hough","notes":"Premium $3.95/oz","spot":67.05},{"id":"s12","date":"2026-09-01","item":"Indian Head","form":"Round","qty":2,"ozEach":1,"price":130.0,"dealer":"Hough","notes":"Premium $1.08/oz","spot":63.92},{"id":"s13","date":"2026-09-18","item":"Route 66","form":"Round","qty":1,"ozEach":1,"price":71.0,"dealer":"Hough","notes":"Premium $4.62/oz","spot":66.38},{"id":"s14","date":"2026-09-28","item":"Indian Head","form":"Round","qty":3,"ozEach":1,"price":195.0,"dealer":"Hough","notes":"Premium $3.60/oz","spot":61.4},{"id":"s15","date":"2026-10-02","item":"Indian Buffalo","form":"Round","qty":3,"ozEach":1,"price":195.0,"dealer":"Hough","notes":"Premium $3.70/oz","spot":61.3},{"id":"s16","date":"2026-10-06","item":"Buffalo Indian","form":"Round","qty":2,"ozEach":1,"price":130.0,"dealer":"Hough","notes":"Premium $3.70/oz","spot":61.3},{"id":"s17","date":"2026-10-14","item":"Miner Eleland","form":"Round","qty":1,"ozEach":1,"price":60.0,"dealer":"Hough","notes":"Premium $4.30/oz","spot":55.7}];
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){alert('Could not save on this device. Use "Back up data" to keep a copy.');}}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
 const oz=e=>(+e.qty||0)*(+e.ozEach||0);
@@ -303,12 +313,15 @@ function render(){
   const paid=state.entries.reduce((a,e)=>a+(+e.price||0),0);
   $('melt').innerHTML=(state.spot?money(total*state.spot):'—')+'<small>Melt value</small>';
   $('cost').innerHTML=(paid?money(paid):'—')+'<small>Total paid</small>';
+  $('spotDate').textContent=state.spotDate?'Updated '+new Date(state.spotDate).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'Not entered yet';
+  if(state.spot&&paid){const g=total*state.spot-paid;$('gain').innerHTML=`Melt value is <b class="${g>=0?'up':'down'}">${money(Math.abs(g))}</b> ${g>=0?'above':'below'} what you paid. Average cost ${money(paid/total)}/oz.`;}
+  else $('gain').textContent=paid?`Average cost ${money(paid/total)}/oz. Enter the spot price to see your melt value.`:'';
 
   // ledger
   const sorted=[...state.entries].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   $('ledger').innerHTML=sorted.length?sorted.map(e=>{
     const d=e.date?new Date(e.date+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'';
-    const meta=[d,e.form,`${e.qty} × ${fmt(+e.ozEach)} oz`,e.price?money(+e.price):'',e.dealer].filter(Boolean).join(', ');
+    const meta=[d,e.form,`${e.qty} × ${fmt(+e.ozEach)} oz`,e.price?money(+e.price):'',e.spot?'spot '+money(+e.spot):'',e.dealer].filter(Boolean).join(', ');
     return `<div class="entry" tabindex="0" data-id="${e.id}"><div class="stripe" style="background:${FORM_COLORS[e.form]||'var(--slate)'}"></div><div class="t">${esc(e.item)}</div><div class="oz">${fmt(oz(e))} oz</div><div class="m">${esc(meta)}${e.notes?'<br>'+esc(e.notes):''}</div></div>`;
   }).join(''):'<p class="empty">No purchases yet. Add your first one to start the stack.</p>';
 }
@@ -320,8 +333,8 @@ function openEntry(e){
   editing=e?e.id:null;
   $('dlgTitle').textContent=e?'Edit purchase':'Add purchase';
   $('delBtn').hidden=!e;
-  const d=e||{date:new Date().toISOString().slice(0,10),form:'Coin',item:'',qty:1,ozEach:1,price:'',dealer:'',notes:''};
-  for(const k of ['date','form','item','qty','ozEach','price','dealer','notes']){
+  const d=e||{date:new Date().toISOString().slice(0,10),form:'Coin',item:'',qty:1,ozEach:1,price:'',spot:state.spot??'',dealer:'',notes:''};
+  for(const k of ['date','form','item','qty','ozEach','price','spot','dealer','notes']){
     if(k==='form'&&![...form.form.options].some(o=>o.value===d.form))form.form.add(new Option(d.form));
     form[k].value=d[k]??'';
   }
@@ -330,7 +343,7 @@ function openEntry(e){
 function calc(){const t=(+form.qty.value||0)*(+form.ozEach.value||0);$('calc').textContent=`Adds ${fmt(t)} troy oz`;}
 form.addEventListener('input',calc);
 form.addEventListener('submit',()=>{
-  const e={id:editing||uid(),date:form.date.value,form:form.form.value,item:form.item.value.trim(),qty:+form.qty.value,ozEach:+form.ozEach.value,price:form.price.value===''?null:+form.price.value,dealer:form.dealer.value.trim(),notes:form.notes.value.trim()};
+  const e={id:editing||uid(),date:form.date.value,form:form.form.value,item:form.item.value.trim(),qty:+form.qty.value,ozEach:+form.ozEach.value,price:form.price.value===''?null:+form.price.value,spot:form.spot.value===''?null:+form.spot.value,dealer:form.dealer.value.trim(),notes:form.notes.value.trim()};
   if(editing)state.entries=state.entries.map(x=>x.id===editing?e:x);else state.entries.push(e);
   save();render();
 });
@@ -347,7 +360,7 @@ $('goalBtn').onclick=()=>{gform.goal.value=state.goal;gdlg.showModal();};
 $('goalCancel').onclick=()=>gdlg.close();
 gform.addEventListener('submit',()=>{const g=+gform.goal.value;if(g>0){state.goal=g;save();render();}});
 
-$('spot').addEventListener('input',e=>{state.spot=e.target.value===''?null:+e.target.value;save();render();});
+$('spot').addEventListener('input',e=>{state.spot=e.target.value===''?null:+e.target.value;state.spotDate=new Date().toISOString();save();render();});
 
 $('printBtn').onclick=()=>window.print();
 $('exportBtn').onclick=()=>{
